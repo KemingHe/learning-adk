@@ -71,7 +71,7 @@ root_agent = Agent(
         Todays date: {date_today}
         """
     ),
-    sub_agents=[bqml_agent],
+    # sub_agents=[bqml_agent],
     tools=[
         call_db_agent,
         call_ds_agent,
