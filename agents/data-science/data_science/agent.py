@@ -26,7 +26,7 @@ from google.adk.agents import Agent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools import load_artifacts
 
-from .sub_agents import bqml_agent
+# from .sub_agents import bqml_agent
 from .sub_agents.bigquery.tools import (
     get_database_settings as get_bq_database_settings,
 )
@@ -63,7 +63,7 @@ def setup_before_agent_call(callback_context: CallbackContext):
 
 root_agent = Agent(
     model=os.getenv("ROOT_AGENT_MODEL"),
-    name="db_ds_multiagent",
+    name="medo_agent",
     instruction=return_instructions_root(),
     global_instruction=(
         f"""
