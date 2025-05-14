@@ -80,16 +80,24 @@ def get_store_description() -> str:
     Returns:
         str: Combined description of all available stores.
     """
-    store_descriptions = {
-        "Discount Stickers": "Budget-friendly stickers for all occasions with thousands of designs. Features unique eco-friendly paper options popular with teachers and event planners who value sustainability without sacrificing quality.",
-        
-        "Stickers for Less": "High-volume, customizable stickers with a proprietary online design tool. Offers seasonal designs and durable materials with industry-leading shipping times for both businesses and individuals.",
-        
-        "Premium Sticker Mart": "Luxury holographic and metallic stickers using patented materials and 3D printing. Known for limited-edition artist collaborations and exceptional durability that appeals to collectors and designers."
-    }
+# Module-level constant for store descriptions
+STORE_DESCRIPTIONS = {
+    "Discount Stickers": "Budget-friendly stickers for all occasions with thousands of designs. Features unique eco-friendly paper options popular with teachers and event planners who value sustainability without sacrificing quality.",
     
+    "Stickers for Less": "High-volume, customizable stickers with a proprietary online design tool. Offers seasonal designs and durable materials with industry-leading shipping times for both businesses and individuals.",
+    
+    "Premium Sticker Mart": "Luxury holographic and metallic stickers using patented materials and 3D printing. Known for limited-edition artist collaborations and exceptional durability that appeals to collectors and designers."
+}
+
+def get_store_description() -> str:
+    """
+    Retrieves the description of all available stores.
+
+    Returns:
+        str: Combined description of all available stores.
+    """
     # Return combined description of all stores
-    return "\n\n".join(store_descriptions.values())
+    return "\n\n".join(STORE_DESCRIPTIONS.values())
 
 google_search_agent = Agent(
     model=os.getenv("ROOT_AGENT_MODEL"),
