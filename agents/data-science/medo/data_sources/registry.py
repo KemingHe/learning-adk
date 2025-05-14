@@ -209,6 +209,8 @@ class DataSourceRegistry:
             source = self.get_source(source_name)
             if source:
                 context.state[key] = source.get_settings()
+            else:
+                logging.warning(f"Data source '{source_name}' not found. Unable to retrieve settings.")
                 
         return context.state.get(key, {})
     
