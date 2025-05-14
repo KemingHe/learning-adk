@@ -7,7 +7,7 @@ The Data Sources module provides a flexible plugin architecture for connecting t
 ## Design Pattern
 
 1. **Provider Interface**: All data sources implement a common interface (`DataSourceProvider`)
-2. **Registry**: Central manager for data source registration and retrieval
+2. **Registry**: Central manager for data source registration, retrieval, and state management
 3. **Capability Exposure**: Sources self-document their available functionality
 
 ## Key Components
@@ -26,13 +26,20 @@ def validate_connection() -> bool # Connection testing
 
 ### DataSourceRegistry (`registry.py`)
 
-Manager for available data sources:
+Manager for available data sources with integrated state management:
 
 ```python
+# Source registration and access
 registry = DataSourceRegistry()
 registry.register(source)    # Add a source
 registry.get_source(name)    # Retrieve a source
 registry.get_all_sources()   # Get all sources
+
+# State management
+registry.get_active_source(context)           # Get current active source
+registry.set_active_source(context, "BigQuery") # Set active source
+registry.get_source_settings(context, "BigQuery") # Get source settings
+registry.ensure_active_sources_initialized(context) # Initialize active sources list
 ```
 
 ## Usage Examples
@@ -65,16 +72,56 @@ class CSVDataSource(DataSourceProvider):
 registry.register(CSVDataSource())
 ```
 
-### Using in Agent Code
+### Using State Management
 
 ```python
-source = registry.get_source("BigQuery")
-schema = source.get_schema()
-capabilities = source.get_capabilities()
+# In setup_before_agent_call
+registry.ensure_active_sources_initialized(callback_context)
+if not registry.get_active_source(callback_context):
+    registry.set_active_source(callback_context, "BigQuery")
+
+settings = registry.get_source_settings(callback_context)
+
+# In a tool
+active_source = registry.get_active_source(tool_context)
+settings = registry.get_source_settings(tool_context)
 ```
+
+### Using Multiple Data Sources
+
+```python
+# Add sources to active list
+registry.add_active_source(context, "BigQuery")
+registry.add_active_source(context, "CSV")
+
+# Get active sources
+active_sources = registry.get_active_sources(context)
+
+# Switch active source
+registry.set_active_source(context, "CSV")
+
+# Remove a source
+registry.remove_active_source(context, "BigQuery")
+```
+
+## State Management Details
+
+The registry provides these state management functions:
+
+- **`get_active_source(context)`**: Get the currently selected data source
+- **`set_active_source(context, name)`**: Set the current data source
+- **`get_active_sources(context)`**: Get list of all active data sources
+- **`add_active_source(context, name)`**: Add a source to the active list
+- **`remove_active_source(context, name)`**: Remove a source from the active list
+- **`get_source_settings(context, name)`**: Get settings for a source
+- **`get_all_db_settings(context)`**: Get general database settings
+- **`ensure_active_sources_initialized(context)`**: Initialize active sources list
+
+All state is stored in a serializable format within the context.state dictionary.
 
 ## Best Practices
 
 - Each source should handle one data store type
 - Follow the interface contract exactly
-- Document source-specific requirements
+- Use registry's state management for consistent state handling
+- Only store serializable data in the context state

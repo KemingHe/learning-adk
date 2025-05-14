@@ -24,33 +24,20 @@ from google.genai import types
 
 from google.adk.agents import Agent
 from google.adk.agents.callback_context import CallbackContext
-from google.adk.tools import load_artifacts
+from google.adk.tools import load_artifacts, google_search
 
 from .sub_agents.bigquery.tools import get_database_settings
-#from .data_sources.bq_source import BigQueryDataSource
-from .prompts import build_orchestrator_prompt
-from .tools import call_db_agent, call_ds_agent
 
+from .prompts import build_orchestrator_prompt
+from .tools import (
+    call_db_agent,
+    call_ds_agent,
+    get_store_description,
+    call_search_agent,
+)
 
 date_today = date.today()
 
-# def add_data_source(callback_context: CallbackContext, source_name: str):
-#     """
-#     Add a new data source to the active sources list.
-    
-#     Args:
-#         callback_context: The callback context
-#         source_name: Name of the data source to add
-#     """
-#     # Initialize data sources list if needed
-#     if "data_sources" not in callback_context.state:
-#         callback_context.state["data_sources"] = []
-        
-#     # Add the source if not already present
-#     if source_name not in callback_context.state["data_sources"]:
-#         callback_context.state["data_sources"].append(source_name)
-
-# Original hardcoded data source capabilities  
 data_sources = {
     "Retrieve Data": {
         "tool_name": "call_db_agent",
@@ -58,21 +45,17 @@ data_sources = {
         "usage_summary": "Once you return the answer, provide additional explanations.",
         "key_reminder": "DO NOT generate SQL code, ALWAYS USE call_db_agent to generate the SQL if needed."
     },
-    "SQL Database": {
-        "tool_name": "call_db_agent",
-        "description": "If the question needs SQL executions, forward it to the database agent.",
-        "usage_summary": "Used for database queries that can be solved with SQL."
+    "Get Store Info": {
+        "tool_name": "get_store_description",
+        "description": "If you need text description about available stores, use this tool to retrieve all descriptions.",
+        "usage_summary": "Use store details to recommend appropriate options or explain differences between stores.",
+        "key_reminder": "ALWAYS reference specific store features and specialties when making recommendations based on store information."
     },
-    "SQL & Analysis": {
-        "tool_name": "call_db_agent",
-        "description": "If the question needs SQL execution and additional analysis, first forward it to the database agent to retrieve the data.",
-        "usage_summary": "For compound questions requiring both SQL and further analysis, first use this to get the data."
-    },
-    "Data Science": {
-        "tool_name": "call_ds_agent",
-        "description": "If you need to perform data analysis or predictive modeling after retrieving data, use this tool.",
-        "usage_summary": "Used for Python-based data analysis after data has been retrieved.",
-        "key_reminder": "DO NOT generate Python code, ALWAYS USE call_ds_agent to generate further analysis if needed. IF data is available from previous agent calls, YOU CAN DIRECTLY USE call_ds_agent TO DO NEW ANALYZE USING THE DATA FROM PREVIOUS STEPS."
+    "Perform Google Search": {
+        "tool_name": "call_search_agent",
+        "description": "If the user EXPLICITLY requests to search for external information or if the question clearly requires up-to-date information beyond today's date, use this tool.",
+        "usage_summary": "After receiving search results, critically evaluate the information before incorporating it into your response.",
+        "key_reminder": "DO NOT use search unless explicitly requested by the user or absolutely necessary for time-sensitive information. Always prioritize internal data sources first."
     }
 }
 
@@ -103,47 +86,6 @@ def setup_before_agent_call(callback_context: CallbackContext):
     """
         )
 
-# def setup_before_agent_call(callback_context: CallbackContext):
-#     """Setup the agent with all available data sources."""
-    
-#     # Initialize data sources if needed
-#     if "data_sources" not in callback_context.state:
-#         # Add default data sources
-#         add_data_source(callback_context, "BigQuery")
-        
-#     # Get active data sources
-#     active_sources = callback_context.state["data_sources"]
-    
-#     # Build combined capabilities for prompt
-#     all_capabilities = {}
-#     all_schemas = []
-    
-#     # Process each active data source
-#     for source_name in active_sources:
-#         # Create the appropriate data source provider based on name
-#         if source_name == "BigQuery":
-#             source = BigQueryDataSource()
-            
-#             # Get source settings (serializable)
-#             settings = source.get_settings()
-#             callback_context.state["source_settings_" + source_name] = settings
-            
-#             # Get capabilities for prompt builder
-#             all_capabilities.update(source.get_capabilities())
-            
-#             # Get schema for instruction
-#             schema = source.get_schema()
-#             if schema:
-#                 all_schemas.append(f"--------- {source_name} Schema ---------\n{schema}")
-    
-#     # Build orchestrator prompt with combined capabilities
-#     combined_prompt = build_orchestrator_prompt(available_data_sources=all_capabilities)
-    
-#     # Inject all schemas into instruction
-#     callback_context._invocation_context.agent.instruction = (
-#         combined_prompt + "\n\n" + "\n\n".join(all_schemas)
-#     )
-
 
 root_agent = Agent(
     model=os.getenv("ROOT_AGENT_MODEL"),
@@ -159,6 +101,8 @@ root_agent = Agent(
         call_db_agent,
         call_ds_agent,
         load_artifacts,
+        get_store_description,
+        call_search_agent,
     ],
     before_agent_callback=setup_before_agent_call,
     generate_content_config=types.GenerateContentConfig(temperature=0.01),
